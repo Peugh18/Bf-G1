@@ -1,0 +1,248 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "BRUCE FIRE API",
+    "version": "1.0.0",
+    "description": "Especificación base de la API para el sistema de gestión de ventas de BRUCE FIRE S.A.C."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8000/api/v1",
+      "description": "Servidor local"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Healthcheck del sistema",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Estado del sistema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Servicio no disponible por fallo critico de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/export/pdf": {
+      "get": {
+        "summary": "Exportar clientes a PDF",
+        "operationId": "exportCustomersPdf",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/Search"}],
+        "responses": {
+          "200": {
+            "description": "Archivo PDF generado",
+            "content": {"application/pdf": {"schema": {"type": "string", "format": "binary"}}}
+          }
+        }
+      }
+    },
+    "/catalog/export/pdf": {
+      "get": {
+        "summary": "Exportar catálogo a PDF",
+        "operationId": "exportCatalogPdf",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/Search"}],
+        "responses": {
+          "200": {
+            "description": "Archivo PDF generado",
+            "content": {"application/pdf": {"schema": {"type": "string", "format": "binary"}}}
+          }
+        }
+      }
+    },
+    "/customers/export/excel": {
+      "get": {
+        "summary": "Exportar clientes a XLSX",
+        "operationId": "exportCustomersExcel",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/Search"}],
+        "responses": {"200": {"description": "Archivo Excel", "content": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {"schema": {"type": "string", "format": "binary"}}}}, "401": {"description": "No autenticado"}, "422": {"description": "Filtro invalido"}}
+      }
+    },
+    "/catalog/export/excel": {
+      "get": {
+        "summary": "Exportar catalogo a XLSX",
+        "operationId": "exportCatalogExcel",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/Search"}],
+        "responses": {"200": {"description": "Archivo Excel", "content": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {"schema": {"type": "string", "format": "binary"}}}}, "401": {"description": "No autenticado"}, "422": {"description": "Filtro invalido"}}
+      }
+    },
+    "/auth/preferences": {
+      "get": {"summary": "Leer preferencias de usuario", "security": [{"sessionAuth": []}], "responses": {"200": {"description": "Preferencias", "content": {"application/json": {"schema": {"type": "object", "properties": {"preferences": {"$ref": "#/components/schemas/Preferences"}}}}}}, "401": {"description": "No autenticado"}}},
+      "put": {"summary": "Guardar preferencias de usuario", "security": [{"sessionAuth": []}], "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Preferences"}}}}, "responses": {"200": {"description": "Preferencias guardadas"}, "401": {"description": "No autenticado"}, "419": {"description": "CSRF invalido"}, "422": {"description": "Valores invalidos"}}}
+    },
+    "/auth/register": {
+      "post": {
+        "summary": "Registrar una cuenta e iniciar sesion (CSRF obligatorio para SPA)",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["name", "email", "password", "password_confirmation"], "properties": {"name": {"type": "string", "maxLength": 150}, "email": {"type": "string", "format": "email"}, "phone": {"type": "string", "nullable": true}, "password": {"type": "string", "minLength": 8, "maxLength": 72, "writeOnly": true}, "password_confirmation": {"type": "string", "writeOnly": true}}}}}},
+        "responses": {"201": {"description": "Usuario creado, rol Vendedor y cookie de sesion"}, "419": {"description": "Cookie/token CSRF ausente o invalido"}, "422": {"description": "Validacion fallida"}, "429": {"description": "Demasiados intentos"}}
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Iniciar sesion (obtener antes GET /sanctum/csrf-cookie)",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["email", "password"], "properties": {"email": {"type": "string", "format": "email"}, "password": {"type": "string", "writeOnly": true}}}}}},
+        "responses": {"200": {"description": "Usuario autenticado y cookie de sesion"}, "419": {"description": "CSRF invalido"}, "422": {"description": "Credenciales invalidas"}, "429": {"description": "Demasiados intentos"}}
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "Cerrar sesion",
+        "security": [{"sessionAuth": []}],
+        "responses": {"204": {"description": "Sesion cerrada"}, "401": {"description": "No autenticado"}}
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Datos del usuario autenticado; devuelve un objeto user",
+        "operationId": "getAuthenticatedUser",
+        "security": [{"bearerAuth": []}],
+        "responses": {"200": {"description": "Usuario", "content": {"application/json": {"schema": {"type": "object", "required": ["user"], "properties": {"user": {"type": "object", "required": ["id", "name", "email", "role"], "properties": {"id": {"type": "integer"}, "name": {"type": "string"}, "email": {"type": "string", "format": "email"}, "role": {"type": "string"}, "phone": {"type": "string", "nullable": true}}}}}}}}, "401": {"description": "No autenticado"}}
+      }
+    },
+    "/dashboard/metrics": {
+      "get": {
+        "summary": "Resumen de métricas del dashboard",
+        "operationId": "getDashboardMetrics",
+        "responses": {
+          "200": {
+            "description": "Métricas del sistema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardMetrics"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/change-password": {
+      "post": {
+        "summary": "Cambiar la contraseña del usuario autenticado",
+        "operationId": "changePassword",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contraseña actualizada correctamente"
+          },
+          "204": {"description": "Contrasena actualizada sin contenido"},
+          "401": {"description": "No autenticado"},
+          "422": {"description": "Validacion fallida", "content": {"application/json": {"schema": {"type": "object", "properties": {"message": {"type": "string"}, "errors": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "string"}}}}}}}}
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {"bearerAuth": {"type": "http", "scheme": "bearer"}, "sessionAuth": {"type": "apiKey", "in": "cookie", "name": "bruce_fire_session", "description": "Sesion Sanctum. En SPA obtener CSRF en /sanctum/csrf-cookie y enviar X-XSRF-TOKEN en POST."}},
+    "parameters": {"Search": {"name": "q", "in": "query", "description": "Nombre o documento/codigo", "schema": {"type": "string", "maxLength": 100}}},
+    "schemas": {
+      "Preferences": {"type": "object", "required": ["theme", "density"], "properties": {"theme": {"type": "string", "enum": ["light", "dark", "system"]}, "density": {"type": "string", "enum": ["comfortable", "compact"]}}},
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "db_status": {
+            "type": "string",
+            "example": "connected"
+          },
+          "storage_status": {
+            "type": "string",
+            "example": "writable"
+          },
+          "environment": {
+            "type": "string",
+            "example": "production"
+          },
+          "env_status": {
+            "type": "string",
+            "example": "configured"
+          },
+          "missing_env_vars": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": []
+          }
+        }
+      },
+      "DashboardMetrics": {
+        "type": "object",
+        "properties": {
+          "active_customers": {
+            "type": "integer",
+            "example": 180
+          },
+          "catalog_products": {
+            "type": "integer",
+            "example": 320
+          },
+          "users_by_role": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "required": ["current_password", "new_password", "confirm_password"],
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "example": "oldPassword123"
+          },
+          "new_password": {
+            "type": "string",
+            "minLength": 8,
+            "writeOnly": true,
+            "example": "newPassword456"
+          },
+          "confirm_password": {
+            "type": "string",
+            "example": "newPassword456"
+          }
+        }
+      }
+    }
+  }
+}
